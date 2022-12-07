@@ -3,14 +3,16 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Sluggable\SlugOptions;
+use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -19,7 +21,13 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
-        'email',
+        'first_name',
+        'middle_name',
+        'last_name',
+        'contact_no',
+        'address',
+        'status',
+        'username',
         'password',
     ];
 
@@ -41,4 +49,54 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    protected $appends = ['role', 'account'];
+
+    public function getRoleAttribute()
+    {
+        $roles = $this->getRoleNames();
+
+        return $roles[0];
+    }
+
+    public function getAccountAttribute()
+    {
+        return Account::where('client_id', $this->id)->first();
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+    public function isClient(): bool
+    {
+        return $this->hasRole('client');
+    }
+
+    public function isMeterman(): bool
+    {
+        return $this->hasRole('meterman');
+    }
+
+    public function isCashier(): bool
+    {
+        return $this->hasRole('cashier');
+    }
+
+    public function account()
+    {
+        return $this->hasOne(Account::class, 'client_id');
+    }
+
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+    
+    public function getJWTCustomClaims()
+    {
+        return [];
+    }
 }
+
